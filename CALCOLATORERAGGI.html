@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Raggi di Dimensionamento</title>
+    <!-- Caricamento di Tailwind CSS per lo styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Space Mono', sans-serif;
+            background-color: #dce7ff;
+        }
+        /* Stile personalizzato per gli input */
+        .input-field {
+            transition: border-color 0.2s, box-shadow 0.2s;
+            /* Bianco per lo sfondo dell'input, testo nero */
+            background-color: white; 
+            color: #1f2937;
+        }
+        .input-field:focus {
+            border-color: #3b82f6; /* Blu primario come stato di focus */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Container Principale (Centrato e responsive) -->
+    <div class="w-full max-w-lg bg-white shadow-2xl rounded-xl p-8 space-y-8">
+
+        <!-- Titolo e Descrizione (Corrispondenti al mockup) -->
+        <h1 class="text-3xl font-extrabold text-gray-800 text-center uppercase tracking-widest">
+            RAGGI DIMENSIONAMENTO
+        </h1>
+        <p class="text-center text-gray-600">
+            Automazione scelta raggio per impugnatura semicilindrica, l'inserimento prevede due lunghezze d'arco di circonferenza (una riduzione delle lunghezze polso-dito medio per percentili 99 e 1)
+        </p>
+
+        <!-- Contenitore per gli Input (Purple Blocks) -->
+        <div class="space-y-4">
+            
+            <!-- Input 99° Percentile (Purple Block) -->
+            <div class="flex items-center justify-between bg-violet-600 rounded-lg p-4 shadow-md">
+                <label for="c99" class="text-base font-semibold text-white">99° Percentile:</label>
+                <input type="number" id="c99" value="200"
+                       class="w-1/2 px-3 py-2 border-2 border-white rounded-lg input-field"
+                       placeholder="Es: 200 mm">
+            </div>
+
+            <!-- Input 1° Percentile (Purple Block) -->
+            <div class="flex items-center justify-between bg-violet-600 rounded-lg p-4 shadow-md">
+                <label for="c01" class="text-base font-semibold text-white">1° Percentile:</label>
+                <input type="number" id="c01" value="150"
+                       class="w-1/2 px-3 py-2 border-2 border-white rounded-lg input-field"
+                       placeholder="Es: 150 mm">
+            </div>
+
+            <!-- Area Messaggi / Errori -->
+            <div id="message-area" class="text-center p-3 rounded-lg hidden text-sm font-medium"></div>
+
+            <!-- Pulsante Calcola (Yellow Block) -->
+            <button onclick="calculateAndDisplay()"
+                    class="w-full bg-amber-400 text-gray-800 font-bold py-4 rounded-lg shadow-xl hover:bg-amber-500 transition duration-150 transform hover:scale-[1.01] uppercase">
+                Calcola Raggi
+            </button>
+        </div>
+
+        <!-- Sezione Risultati (Output - Green Blocks) -->
+        <div id="results" class="space-y-4 pt-4 border-t border-gray-200 hidden">
+            <h2 class="text-xl font-semibold text-gray-800 text-center">Risultati di Dimensionamento</h2>
+
+            <!-- Card Raggio 99° (R1) (Green Block) -->
+            <div class="flex items-center justify-between bg-emerald-400 p-4 rounded-lg shadow-lg">
+                <p class="text-base font-semibold text-white">Raggio 99° (R1):</p>
+                <p id="r1-output" class="text-2xl font-extrabold text-white">-- mm</p>
+            </div>
+
+            <!-- Card Raggio 1° (R2) (Green Block) -->
+            <div class="flex items-center justify-between bg-emerald-400 p-4 rounded-lg shadow-lg">
+                <p class="text-base font-semibold text-white">Raggio 1° (R2):</p>
+                <p id="r2-output" class="text-2xl font-extrabold text-white">-- mm</p>
+            </div>
+            
+            <!-- Card Media Raggi (Optional: Grey Block for distinction) -->
+            <div class="flex items-center justify-between bg-gray-200 p-4 rounded-lg shadow-md">
+                <p class="text-sm text-gray-700 font-semibold">Media Dimensionale (Raggio di Progettazione):</p>
+                <p id="media-output" class="text-2xl font-extrabold text-gray-900">-- mm</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logica JavaScript (INVARIATA) -->
+    <script>
+        /**
+         * Calcola il raggio applicando la riduzione del 40% (0.60x) e dividendo per Pi greco.
+         * Assunzione: La misura è l'arco della semicirconferenza (C = pi * r).
+         * @param {number} misuraC La misura antropometrica (C).
+         * @returns {number} Il raggio risultante.
+         */
+        function calcolaRaggio(misuraC) {
+            const riduzione = 0.40; // 40% di riduzione
+            const misuraRidotta = misuraC * (1 - riduzione);
+            // r = C_ridotta / π
+            return misuraRidotta / Math.PI;
+        }
+
+        /**
+         * Esegue il calcolo, aggiorna la UI e gestisce gli errori.
+         */
+        function calculateAndDisplay() {
+            const inputC99 = document.getElementById('c99');
+            const inputC01 = document.getElementById('c01');
+            const messageArea = document.getElementById('message-area');
+            const resultsSection = document.getElementById('results');
+
+            // Nasconde messaggi precedenti
+            messageArea.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            messageArea.classList.remove('bg-red-100', 'text-red-700');
+
+
+            const c99 = parseFloat(inputC99.value);
+            const c01 = parseFloat(inputC01.value);
+
+            // Validazione Input
+            if (isNaN(c99) || isNaN(c01) || c99 <= 0 || c01 <= 0) {
+                messageArea.textContent = "Errore: Inserisci numeri positivi e validi per entrambi i percentili.";
+                messageArea.classList.remove('hidden');
+                messageArea.classList.add('bg-red-100', 'text-red-700');
+                resultsSection.classList.add('hidden');
+                return;
+            }
+
+            // 1. Calcolo dei Raggi
+            const r1 = calcolaRaggio(c99);
+            const r2 = calcolaRaggio(c01);
+
+            // 2. Calcolo della Media
+            const mediaRaggi = (r1 + r2) / 2;
+
+            // 3. Aggiornamento UI
+            document.getElementById('r1-output').textContent = `${r1.toFixed(2)} mm`;
+            document.getElementById('r2-output').textContent = `${r2.toFixed(2)} mm`;
+            document.getElementById('media-output').textContent = `${mediaRaggi.toFixed(2)} mm`;
+
+            // Mostra i risultati
+            resultsSection.classList.remove('hidden');
+        }
+
+        // Esegue il calcolo iniziale con i valori di default per un feedback immediato
+        window.onload = calculateAndDisplay;
+    </script>
+
+</body>
+</html>
